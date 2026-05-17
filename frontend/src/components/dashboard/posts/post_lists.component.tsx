@@ -235,11 +235,11 @@ const PostListsComponent: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-300">
-                      {post.author.name}
+                    <div className="text-sm text-slate-900">
+                      {post.author?.name || 'Unknown User'}
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {post.author.email}
+                    <div className="text-xs text-slate-500">
+                      {post.author?.email || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
