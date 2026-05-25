@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, CSSProperties } from 'react';
 
 const guidelines = () => {
   const sections = [
@@ -21,7 +21,7 @@ const guidelines = () => {
   ];
 
   // Track hover states dynamically for each card array index
-  const [hoveredCard, setHoveredCard] = useState(null);
+const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   return (
     <div style={styles.pageContainer}>
@@ -78,7 +78,7 @@ const guidelines = () => {
 };
 
 // Layout configurations
-const styles = {
+const styles: Record<string, CSSProperties> = {
   pageContainer: {
     backgroundColor: '#000000',
     color: '#ffffff',
@@ -107,17 +107,14 @@ const styles = {
     color: '#9ca3af',
     lineHeight: '1.6',
   },
-  gridContainer: {
-    display: 'grid',
-    // Forces exactly 2 balanced columns side-by-side on desktop screens
-    gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
-    gap: '1.5rem',
-    width: '100%',
-    maxWidth: '1000px',
-    marginBottom: '4rem',
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: '1fr',
-    }
+ gridContainer: {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+  gap: '1.5rem',
+  width: '100%',
+  maxWidth: '1000px',
+  marginBottom: '4rem',
+},
   },
   card: {
     backgroundColor: '#111827',
