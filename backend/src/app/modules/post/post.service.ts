@@ -11,6 +11,9 @@ import {
 import paginationHelper from "../../../utils/pagination_helper";
 import { postSearchFields } from "./post.constant";
 import { SortOrder } from "mongoose";
+import { Bookmark } from "../bookmark/bookmark.model";
+import { Comment } from "../comment/comment.model";
+import { Reaction } from "../reaction/reaction.model";
 
 const createPost = async (payload: IPostPayload, token: ITokenPayload) => {
   const { email, role } = token;
@@ -228,6 +231,38 @@ const toggleBookmark = async (postId: string, token: ITokenPayload) => {
   }
 };
 
+const deletePost = async (postId: string, token: ITokenPayload) => {
+  const user = await User.findOne({ email: token.email });
+  if (!user) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "User not found!");
+  }
+
+  const post = await Post.findById(postId);
+  if (!post) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Post not found!");
+  }
+
+  if (!post.author || post.author.toString() !== user._id.toString()) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      "You can only delete your own story!"
+    );
+  }
+
+  await Promise.all([
+    Comment.deleteMany({ postId: post._id }),
+    Reaction.deleteMany({ postId: post._id }),
+    Bookmark.deleteMany({ storyId: post._id }),
+    Post.deleteOne({ _id: post._id }),
+    User.updateOne(
+      { _id: user._id, postsCount: { $gt: 0 } },
+      { $inc: { postsCount: -1 } }
+    ),
+  ]);
+
+  return post;
+};
+
 export const PostService = {
   createPost,
   getPosts,
@@ -237,4 +272,5 @@ export const PostService = {
   getSinglePost,
   getPostsByTag,
   toggleBookmark,
+  deletePost,
 };
