@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getShortenedText, ITopicData, topicsData, getWordCount, SELECTED_TOPIC_CLASSES } from "./stories.utils";
 import toast, { Toaster } from "react-hot-toast";
 import { useCreatePostMutation } from "../../redux/apis/post.api";
@@ -7,6 +7,8 @@ import jsPDF from "jspdf";
 import BookmarkButton from "../BookmarkButton";
 import logo from "../../assets/logoNew.png";
 import StoryGeneratingAnimation from "../loading/story-generating-animation.component";
+import AudioPlayer, { type AudioPlayerHandle, type NarrationPlaybackState } from "../AudioPlayer";
+import { useLocation } from "react-router-dom";
 
 import {
   useGenerateAlternateEndingsMutation,
@@ -33,6 +35,46 @@ interface StoriesComponentProps {
   isLoading?: boolean;
 }
 
+type StorySentenceSegment = {
+  id: string;
+  text: string;
+  startWordIndex: number;
+  endWordIndex: number;
+};
+
+const buildSentenceSegments = (content: string): StorySentenceSegment[] => {
+  if (!content.trim()) {
+    return [];
+  }
+
+  const sentenceMatches = content.match(/[^.!?]+[.!?]*\s*/g) ?? [content];
+  const segments: StorySentenceSegment[] = [];
+  let wordCursor = 0;
+
+  sentenceMatches.forEach((sentence, index) => {
+    const trimmedSentence = sentence.trim();
+    if (!trimmedSentence) {
+      return;
+    }
+
+    const wordsInSentence = sentence.match(/\S+/g)?.length ?? 0;
+    const startWordIndex = wordCursor;
+    const endWordIndex =
+      wordsInSentence > 0 ? wordCursor + wordsInSentence - 1 : wordCursor;
+
+    segments.push({
+      id: `${index}-${startWordIndex}-${endWordIndex}`,
+      text: sentence,
+      startWordIndex,
+      endWordIndex,
+    });
+
+    wordCursor += wordsInSentence;
+  });
+
+  return segments;
+};
+
 const StoriesViewComponent: React.FC<StoriesComponentProps> = ({
   stories,
   isLogin,
@@ -40,6 +82,9 @@ const StoriesViewComponent: React.FC<StoriesComponentProps> = ({
   isLoading,
   onPublishSuccess,
 }) => {
+  const location = useLocation();
+  const audioPlayerRef = useRef<AudioPlayerHandle>(null);
+
   // Start with a clean state that adapts dynamically
   const [selectedStory, setSelectedStory] = useState<IStories | null>(null);
   const [topics, setTopics] = useState<ITopicData[]>(topicsData);
@@ -58,6 +103,8 @@ const StoriesViewComponent: React.FC<StoriesComponentProps> = ({
   }>({});
   const [isGeneratingEndings, setIsGeneratingEndings] = useState<boolean>(false);
   const [activeEndingTab, setActiveEndingTab] = useState<string>("Happy Ending");
+  const [narrationWordIndex, setNarrationWordIndex] = useState<number>(0);
+  const [narrationState, setNarrationState] = useState<NarrationPlaybackState>("idle");
 
   const [generateAlternateEndings] = useGenerateAlternateEndingsMutation();
   const [generateFreeAlternateEndings] = useGenerateFreeAlternateEndingsMutation();
@@ -139,6 +186,21 @@ const StoriesViewComponent: React.FC<StoriesComponentProps> = ({
   useEffect(() => {
     setSelectTopics(topics.filter((topic) => topic.selected));
   }, [topics]);
+
+  useEffect(() => {
+    return () => {
+      audioPlayerRef.current?.stop();
+    };
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setNarrationWordIndex(0);
+    setNarrationState("idle");
+  }, [selectedStory?.uuid]);
+
+  const sentenceSegments = useMemo(() => {
+    return buildSentenceSegments(selectedStory?.content ?? "");
+  }, [selectedStory?.content]);
 
   // Sync state instantly whenever a new template is submitted or selected
   useEffect(() => {
@@ -543,6 +605,8 @@ ${content}
     return Math.max(1, Math.ceil(words / 200));
   };
 
+  const isNarrationActive = narrationState !== "idle";
+
 if (isLoading) {
   return (
     <div className="flex items-center justify-center py-20">
@@ -655,7 +719,41 @@ if (isLoading) {
               </div>
             </div>
             <div id="story-content" className="prose prose-invert max-w-none text-slate-300 leading-relaxed tracking-wide relative z-10">
-              <p className="break-words">{selectedStory.content}</p>
+              <p className="break-words whitespace-pre-wrap">
+                {sentenceSegments.length > 0 ? (
+                  sentenceSegments.map((segment) => {
+                    const isActiveSentence =
+                      isNarrationActive &&
+                      narrationWordIndex >= segment.startWordIndex &&
+                      narrationWordIndex <= segment.endWordIndex;
+
+                    return (
+                      <span
+                        key={segment.id}
+                        className={
+                          isActiveSentence
+                            ? "rounded-md bg-indigo-500/20 px-0.5 py-0.5 text-indigo-100 ring-1 ring-indigo-400/30"
+                            : undefined
+                        }
+                      >
+                        {segment.text}
+                      </span>
+                    );
+                  })
+                ) : (
+                  selectedStory.content
+                )}
+              </p>
+            </div>
+
+            <div className="relative z-10 mt-6">
+              <AudioPlayer
+                ref={audioPlayerRef}
+                text={selectedStory.content}
+                title={selectedStory.title}
+                onWordIndexChange={setNarrationWordIndex}
+                onPlaybackStateChange={setNarrationState}
+              />
             </div>
           </div>
           <div className="mt-7">
