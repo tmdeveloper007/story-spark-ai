@@ -512,7 +512,7 @@ const StoriesComponent = () => {
     </button>
 
     {isDropdownOpen && (
-      <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-slate-800 border border-slate-700/50 rounded-lg shadow-xl focus:outline-none divide-y divide-slate-700/30">
+      <ul className="relative z-10 w-full mt-1 max-h-60 overflow-y-auto bg-slate-800 border border-slate-700/50 rounded-lg shadow-xl focus:outline-none divide-y divide-slate-700/30">
         {prompts.map((item) => (
           <li key={item.id}>
             <button
