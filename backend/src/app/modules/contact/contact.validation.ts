@@ -1,43 +1,47 @@
 import { z } from "zod";
 
-const feedbackTypes = ["bug", "feature", "feedback", "general"] as const;
+const contactFeedbackTypes = [
+  "bug-report",
+  "feature-request",
+  "general-feedback",
+] as const;
 
 const optionalTrimmedString = z.preprocess((value) => {
   if (typeof value !== "string") {
-    return value;
+    return undefined;
   }
 
   const trimmedValue = value.trim();
 
-  return trimmedValue.length > 0 ? trimmedValue : undefined;
-}, z.string().min(1));
+  return trimmedValue ? trimmedValue : undefined;
+}, z.string().optional());
 
-const optionalEmailString = z.preprocess((value) => {
+const optionalEmail = z.preprocess((value) => {
   if (typeof value !== "string") {
-    return value;
+    return undefined;
   }
 
   const trimmedValue = value.trim();
 
-  return trimmedValue.length > 0 ? trimmedValue : undefined;
+  return trimmedValue ? trimmedValue : undefined;
 }, z.string().email("Invalid email address").optional());
 
-const requiredTrimmedString = z.preprocess((value) => {
-  if (typeof value !== "string") {
-    return value;
-  }
+const requiredTrimmedString = (label: string) =>
+  z.preprocess((value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
 
-  return value.trim();
-}, z.string().min(1, "This field is required"));
+    return value.trim();
+  }, z.string().min(1, `${label} is required`));
 
 const contactValidationSchema = z.object({
   body: z.object({
-    fullname: optionalTrimmedString.optional(),
-    name: optionalTrimmedString.optional(),
-    email: optionalEmailString,
-    feedbackType: z.enum(feedbackTypes).optional(),
-    subject: requiredTrimmedString,
-    message: requiredTrimmedString,
+    fullname: optionalTrimmedString,
+    email: optionalEmail,
+    feedbackType: z.enum(contactFeedbackTypes),
+    subject: requiredTrimmedString("Subject"),
+    message: requiredTrimmedString("Message"),
   }),
 });
 

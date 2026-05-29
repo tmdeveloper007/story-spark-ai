@@ -1,10 +1,7 @@
-export type ContactFeedbackType = "bug" | "feature" | "feedback" | "general";
-
 export type IContactRequest = {
   fullname?: string;
-  name?: string;
   email?: string;
-  feedbackType?: ContactFeedbackType;
+  feedbackType: "bug-report" | "feature-request" | "general-feedback";
   subject: string;
   message: string;
 };

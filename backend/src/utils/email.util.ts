@@ -49,9 +49,8 @@ export const sendVerificationEmail = async (to: string, token: string) => {
 
 export const sendContactEmail = async (data: {
   fullname?: string;
-  name?: string;
   email?: string;
-  feedbackType?: "bug" | "feature" | "feedback" | "general";
+  feedbackType: "bug-report" | "feature-request" | "general-feedback";
   subject: string;
   message: string;
 }) => {
@@ -68,28 +67,27 @@ export const sendContactEmail = async (data: {
     },
   });
 
-  const senderName = data.fullname?.trim() || data.name?.trim() || "Anonymous";
-  const senderEmail = data.email?.trim();
-  const feedbackType = data.feedbackType || "general";
-  const feedbackLabel =
-    feedbackType === "bug"
+  const feedbackTypeLabel =
+    data.feedbackType === "bug-report"
       ? "Bug report"
-      : feedbackType === "feature"
+      : data.feedbackType === "feature-request"
         ? "Feature request"
-        : feedbackType === "feedback"
-          ? "General feedback"
-          : "Support request";
+        : "General feedback";
+
+  const displayName = data.fullname?.trim() || "Anonymous user";
+  const displayEmail = data.email?.trim() || "Not provided";
 
   const mailOptions = {
     from: `"Story Spark AI Support" <${config.verify_email}>`,
-    replyTo: senderEmail || undefined,
+    replyTo: data.email?.trim() || undefined,
     to: config.verify_email,
-    subject: `[${feedbackLabel}] ${data.subject}`,
+    subject: `Support Form [${feedbackTypeLabel}]: ${data.subject}`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
         <h2>New Support / Feedback Submission</h2>
-        <p><strong>Type:</strong> ${feedbackLabel}</p>
-        <p><strong>From:</strong> ${senderName}${senderEmail ? ` (${senderEmail})` : ""}</p>
+        <p><strong>Type:</strong> ${feedbackTypeLabel}</p>
+        <p><strong>Name:</strong> ${displayName}</p>
+        <p><strong>Email:</strong> ${displayEmail}</p>
         <p><strong>Subject:</strong> ${data.subject}</p>
         <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
         <p><strong>Message:</strong></p>
