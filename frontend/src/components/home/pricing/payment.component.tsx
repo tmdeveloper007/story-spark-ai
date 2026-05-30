@@ -89,8 +89,15 @@ const PaymentComponent = () => {
         },
       };
 
-      const paymentObject = new  (window as unknown ).Razorpay(options);
-
+const paymentObject = new (
+  window as Window &
+    typeof globalThis & {
+      Razorpay: new (options: unknown) => {
+        on: (event: string, callback: (response: Record<string, unknown>) => void) => void;
+        open: () => void;
+      };
+    }
+).Razorpay(options);
       paymentObject.on("payment.failed", function (response:Record<string, unknown>) {
         console.error(response.error);
         alert("Payment failed.");
