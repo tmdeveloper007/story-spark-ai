@@ -5,7 +5,10 @@ const createToken = (
   secret: Secret,
   expireTime: string
 ): string => {
-  const options = { expiresIn: expireTime } as SignOptions;
+  const options = {
+    algorithm: "HS256",
+    expiresIn: expireTime,
+  } as SignOptions;
   return jwt.sign(payload, secret, options);
 };
 
@@ -22,7 +25,7 @@ const createResetToken = (
 };
 
 const verifyToken = (token: string, secret: Secret): JwtPayload => {
-  return jwt.verify(token, secret) as JwtPayload;
+  return jwt.verify(token, secret, { algorithms: ["HS256"] }) as JwtPayload;
 };
 
 export const JwtHalers = {
