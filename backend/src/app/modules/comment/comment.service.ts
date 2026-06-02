@@ -123,16 +123,14 @@ const getCommentsByPostId = async (postId: string) => {
     };
 
     if (!commentDTO.parentCommentId) {
-      topLevelComments.push(commentDTO);
-    } else {
-      const parentIdStr = commentDTO.parentCommentId.toString();
-      if (!replyMap.has(parentIdStr)) {
-        replyMap.set(parentIdStr, []);
-      }
-      replyMap.get(parentIdStr)!.push(commentDTO);
-    }
+  topLevelComments.push(commentDTO);
+} else {
+  const parentIdStr = commentDTO.parentCommentId.toString();
+  if (!replyMap.has(parentIdStr)) {
+    replyMap.set(parentIdStr, []);
   }
-
+  replyMap.get(parentIdStr)!.push(commentDTO);
+}
   for (const comment of topLevelComments) {
     const idStr = comment._id.toString();
     const replies = replyMap.get(idStr) || [];
