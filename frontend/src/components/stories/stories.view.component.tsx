@@ -139,7 +139,6 @@ export interface IStories {
   tag: string;
   imageURL: string;
   language?: string;
-  coverImage?: string;
 }
 
 interface IPost extends IStories {
@@ -430,7 +429,7 @@ const StoriesViewComponent: React.FC<StoriesComponentProps> = ({
   }, [selectedStory, originalStoryContent]);
 
   useEffect(() => {
-    setSelectTopics(topics.filter((topic: ITopicData) => topic.selected));
+    setSelectTopics(topics.filter((topic) => topic.selected));
   }, [topics]);
 
   useEffect(() => {
@@ -539,17 +538,6 @@ const StoriesViewComponent: React.FC<StoriesComponentProps> = ({
         {selectedStory ? (
           <div className="bg-slate-800 border border-slate-700/50 p-6 rounded-2xl shadow-xl">
             <h2 className="text-2xl font-black mb-4">{selectedStory.title}</h2>
-            {selectedStory.coverImage && (
-              <div className="w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden mb-6 relative group select-none">
-                <img
-                  src={selectedStory.coverImage}
-                  alt={selectedStory.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            )}
             
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               {selectedStory.imageURL && (
