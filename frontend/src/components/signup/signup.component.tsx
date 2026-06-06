@@ -43,7 +43,7 @@ const getPasswordError = (password: string) => {
 
 type StrengthLevel = "weak" | "medium" | "strong";
 
-const PASSWORD_STRENGTH_CONFIG: Record
+const PASSWORD_STRENGTH_CONFIG: Record<
   StrengthLevel,
   { label: string; barColor: string; barWidth: string; textColor: string }
 > = {
@@ -435,7 +435,7 @@ const SignUpComponent = () => {
           {!showOtpField && (
             <p className="mt-8 text-center text-sm text-slate-400">
               Already have an account?{" "}
-              
+              <a
                 href="/login"
                 className="font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200"
               >
@@ -452,3 +452,6 @@ const SignUpComponent = () => {
 };
 
 export default SignUpComponent;
+
+
+
