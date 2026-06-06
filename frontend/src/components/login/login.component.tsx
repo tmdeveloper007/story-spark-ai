@@ -145,8 +145,8 @@ const LoginComponent = () => {
 
 
         {/* Right side — login form card */}
-        <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-8 sm:p-10 shadow-2xl relative z-10 box-border">
 
+        <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-8 sm:p-10 shadow-2xl box-border overflow-hidden relative">
           {/* Back to Home */}
           <button
             onClick={() => (window.location.href = "/")}
