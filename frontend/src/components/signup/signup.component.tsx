@@ -55,19 +55,19 @@ const PASSWORD_STRENGTH_CONFIG: Record<
     label: "Weak",
     barColor: "bg-red-500",
     barWidth: "w-1/3",
-    textColor: "text-red-400",
+    textColor: "text-red-600 dark:text-red-400",
   },
   medium: {
     label: "Medium",
     barColor: "bg-yellow-400",
     barWidth: "w-2/3",
-    textColor: "text-yellow-300",
+    textColor: "text-yellow-700 dark:text-yellow-300",
   },
   strong: {
     label: "Strong",
     barColor: "bg-green-500",
     barWidth: "w-full",
-    textColor: "text-green-400",
+    textColor: "text-green-600 dark:text-green-400",
   },
 };
 
@@ -227,6 +227,60 @@ const SignUpComponent = () => {
     }
   };
 
+  const handleResendOtp = async () => {
+    if (cooldown > 0 || isBusy) return;
+    if (!registerInfo) {
+      toast.error("Something went wrong. Please restart the process.");
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const res = await emailVerify({
+        name: registerInfo.name,
+        email: registerInfo.email,
+      }).unwrap();
+
+      if (res?.data) {
+        const { expiresAt } = res.data;
+        setExpiredAt(new Date(expiresAt).getTime());
+        setValue("otp", "");
+        setCooldown(60);
+        toast.success("OTP resent successfully!");
+      }
+    } catch (error) {
+      const err = error as { data?: Array<{ message?: string }>; message?: string };
+      const message =
+        err?.data?.[0]?.message ||
+        err?.message ||
+        "Failed to resend OTP. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleGoogleLoginSuccess = async (
+    credentialResponse: CredentialResponse,
+  ) => {
+    setIsBusy(true);
+    try {
+      const res = await googleLogin({
+        token: credentialResponse.credential,
+      }).unwrap();
+
+      if (res.data.accessToken) {
+        toast.success("User registered successfully with Google!");
+        storeUserInfo({ accessToken: res.data.accessToken });
+        navigate("/");
+      }
+    } catch {
+      toast.error("Failed to register with Google. Please try again.");
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handleGoogleLoginError = () => {
     toast.error("Google login failed. Please try again.");
   };
@@ -244,12 +298,12 @@ const SignUpComponent = () => {
         </div>
 
         {/* UPDATED: Structured layout classes to lock down maximum inner boundary constraints */}
-        <div className="bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-5 sm:p-8 shadow-2xl w-full min-w-0 overflow-hidden box-border">
-          <h3 className="text-center text-xl sm:text-2xl font-bold tracking-tight text-slate-200">
+        <div className="bg-white/90 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5 sm:p-8 shadow-2xl w-full min-w-0 overflow-hidden box-border transition-colors duration-300">
+          <h3 className="text-center text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-200">
             {showOtpField ? "Verify Your Email" : "Create Account"}
           </h3>
           {!showOtpField && (
-            <p className="mt-2 mb-6 text-center text-xs sm:text-sm text-slate-400 px-1">
+            <p className="mt-2 mb-6 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-1">
               Join StorySparkAI and begin your creative journey.
             </p>
           )}
@@ -257,11 +311,11 @@ const SignUpComponent = () => {
           {!showOtpField && (
             <div className="relative mb-6 w-full box-border">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-700/50"></div>
+                <div className="w-full border-t border-slate-200 dark:border-slate-700/50"></div>
               </div>
               <div className="relative flex justify-center text-xs">
                 {/* FIXED: Changed bg-slate-800 to transparent with an overlay filter or solid card layer color */}
-                <span className="px-4 bg-slate-800 text-slate-400 font-semibold tracking-wide rounded-md">
+                <span className="px-4 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold tracking-wide rounded-md">
                   SIGN UP WITH EMAIL
                 </span>
               </div>
@@ -324,7 +378,7 @@ const SignUpComponent = () => {
               {password?.length > 0 && (
                 <div className="space-y-3 -mt-1 w-full min-w-0 overflow-hidden box-border">
                   <div
-                    className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden select-none"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden select-none"
                     role="progressbar"
                     aria-valuenow={passedChecks}
                     aria-valuemin={0}
@@ -344,7 +398,7 @@ const SignUpComponent = () => {
                       return (
                         <li
                           key={key}
-                          className={`flex items-center gap-2 ${met ? "text-emerald-400" : "text-slate-500"}`}
+                          className={`flex items-center gap-2 ${met ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"}`}
                           aria-label={`${label}: ${met ? "met" : "not met"}`}
                         >
                           <i className={`fa-solid ${met ? "fa-circle-check" : "fa-circle-xmark"} text-xs shrink-0`} aria-hidden="true" />
@@ -416,7 +470,7 @@ const SignUpComponent = () => {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={cooldown > 0 || isBusy}
-                  className="text-xs font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300 disabled:text-slate-600 transition-colors duration-150 focus:outline-none disabled:cursor-not-allowed cursor-pointer"
+                  className="text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-slate-500 dark:disabled:text-slate-600 transition-colors duration-150 focus:outline-none disabled:cursor-not-allowed cursor-pointer"
                 >
                   {cooldown > 0 ? `Resend OTP (${cooldown}s)` : "Resend OTP"}
                 </button>
@@ -428,10 +482,10 @@ const SignUpComponent = () => {
               {/* FIXED: Switched background from white to dark theme-aware color matching the card backdrop */}
               <div className="relative my-6 w-full box-border">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-700/50" />
+                  <div className="w-full border-t border-slate-200 dark:border-slate-700/50" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-800 px-4 text-slate-400 font-medium rounded-md">
+                  <span className="bg-white dark:bg-slate-800 px-4 text-slate-500 dark:text-slate-400 font-medium rounded-md">
                     Or
                   </span>
                 </div>
@@ -444,11 +498,11 @@ const SignUpComponent = () => {
                 />
               </div>
 
-              <p className="mt-6 text-center text-sm text-slate-400">
+              <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
                 Already have an account?{" "}
                 <Link
                   to="/login"
-                  className="font-semibold text-blue-400 hover:underline transition-colors"
+                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline transition-colors"
                 >
                   Sign In
                 </Link>
