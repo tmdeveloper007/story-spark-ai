@@ -14,6 +14,7 @@ import {
 } from "../../services/export.service";
 import StoryWorldMap from "../story-map/StoryWorldMap";
 import StoryRemix from "../remix/StoryRemix";
+import StoryTrailer from "../trailer/StoryTrailer";
 import BookmarkButton from "../BookmarkButton";
 import logo from "../../assets/logoNew.png";
 import StoryGeneratingAnimation from "../loading/story-generating-animation.component";
@@ -2037,6 +2038,9 @@ ${content}
                 <button type="button" className="rounded-xl px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent text-xs font-bold uppercase tracking-wider transition-all duration-150 active:scale-[0.98] cursor-pointer" onClick={() => setShowTranslator(true)}>
                   🌍 Translate
                 </button>
+                <button type="button" className="rounded-xl px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white border border-transparent text-xs font-bold uppercase tracking-wider transition-all duration-150 active:scale-[0.98] cursor-pointer" onClick={() => setShowTrailer(true)}>
+                  🎬 Trailer
+                </button>
                 <button type="button" className="rounded-xl px-3 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white border border-transparent text-xs font-bold uppercase tracking-wider transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm" onClick={() => setShowContinueModal(true)}>
                   ✦ Continue →
                 </button>
@@ -2390,6 +2394,15 @@ ${content}
         />
       )}
 
+      {showTrailer && selectedStory && (
+        <StoryTrailer
+          title={selectedStory.title}
+          content={selectedStory.content}
+          tag={selectedStory.tag}
+          isLogin={isLogin}
+          onClose={() => setShowTrailer(false)}
+        />
+      )}
       {showContinueModal && selectedStory && (
         <ContinueStoryModal
           story={{
