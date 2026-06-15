@@ -602,7 +602,7 @@ useEffect(() => {
     audio.volume = 0.3;
 
     audio.play().catch((err) => {
-      console.log("Audio playback failed:", err);
+      console.error("Audio playback failed:", err);
     });
 
     audioRef.current = audio;
@@ -646,7 +646,7 @@ useEffect(() => {
     audio.loop = true;
     audio.volume = 0.3;
     audio.play().catch((err) => {
-      console.log("Audio playback failed:", err);
+      console.error("Audio playback failed:", err);
     });
     audioRef.current = audio;
   };

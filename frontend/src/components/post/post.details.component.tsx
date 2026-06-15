@@ -71,14 +71,6 @@ const PostDetailsComponent = () => {
     {
       skip: !tag,
     }
-  );
-  
-
-  console.log("Current Post:", post);
-  console.log("Tag:", tag);
-  console.log(
-  "Related Posts Full Data:",
-  JSON.stringify(relatedPost, null, 2)
 );
   
   const [toggleReaction] = useToggleReactionMutation();

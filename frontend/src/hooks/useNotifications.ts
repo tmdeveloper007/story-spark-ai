@@ -80,7 +80,6 @@ return [...merged.values()].sort((a, b) => {
 
       // Listen for real-time notifications
       const handleNewNotification = (notification: INotification) => {
-        console.log("[Story Spark] Received notification:", notification);
         setRealtimeNotifications((prev) => {
           const next = [notification, ...prev.filter((item) => item._id !== notification._id)];
           return next;
