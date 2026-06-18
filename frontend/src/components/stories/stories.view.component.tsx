@@ -31,15 +31,13 @@ import {
 import ImageFallback from "../ImageFallback";
 import StoryVisualizer from "../story-visualizer/StoryVisualizer";
 import ContinueStoryModal from "./ContinueStoryModal";
-<<<<<<< new
+
 import GeneratedStoryTimeline from "./GeneratedStoryTimeline";
 import EmptyStoriesState from "./EmptyStoriesState";
 
-=======
-
 const StoryWorldMap = React.lazy(() => import("../story-map/StoryWorldMap"));
 const StoryRemix = React.lazy(() => import("../remix/StoryRemix"));
->>>>>>> main
+
 
 // --- Custom Error Classes & Helper Types ---
 export class ApiError extends Error {

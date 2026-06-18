@@ -576,6 +576,24 @@ const [, setShowRemix] = useState<boolean>(false);
     }
   }, [narrationWordIndex, narrationState]);
 
+  const activeGenerationRef = useRef<{ abort: () => void } | null>(null);
+  const isGenerationInProgressRef = useRef(false);
+  
+  const [guestRequestCount, setGuestRequestCount] = useState<number>(() =>
+    parseInt(localStorage.getItem("guestRequestCount") || "0", 10)
+  );
+  const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
+  const [isRecentPromptsOpen, setIsRecentPromptsOpen] = useState<boolean>(false);
+  const [isHighLatency, setIsHighLatency] = useState<boolean>(false);
+  const { recentPrompts, addPrompt, removePrompt, clearAll } = useRecentPrompts();
+  
+  const text = UI_TEXT[selectedLanguage] ?? UI_TEXT.English;
+  const genreLabels = GENRE_LABELS[selectedLanguage] ?? GENRE_LABELS.English;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const handleGenerateAlternateEndings = async () => {
     if (!selectedStory) return;
     setIsGeneratingEndings(true);
@@ -735,6 +753,9 @@ const [, setShowRemix] = useState<boolean>(false);
   const debouncedSearchQuery = useDebounce(searchQuery, 350);
   const debouncedPrompt = useDebounce(textareaValue, 500);
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
+  const debouncedPrompt = useDebounce(textareaValue, 500);
+
   useEffect(() => {
     setValue("prompt", debouncedPrompt);
   }, [debouncedPrompt, setValue]);
@@ -822,6 +843,12 @@ const [, setShowRemix] = useState<boolean>(false);
   };
   const handleAddTopic = () => {
     const title = newTopicTitle.trim();
+
+  const [generateModel] = useGenerateModelMutation();
+  const [generateFreeModel] = useGenerateFreeModelMutation();
+  const { data } = useGetProfileInfoQuery(undefined);
+  const userRole = getUserInfo();
+  const login = isLoggedIn();
 
   const [generateModel] = useGenerateModelMutation();
   const [generateFreeModel] = useGenerateFreeModelMutation();
@@ -1294,6 +1321,8 @@ const handleExportMarkdown = () => {
 
   const isNarrationActive = narrationState !== "idle";
 
+
+  const uniqueStories = useMemo(() => getUniqueStories(stories), [stories]);
 
   const uniqueStories = useMemo(() => getUniqueStories(stories), [stories]);
 
