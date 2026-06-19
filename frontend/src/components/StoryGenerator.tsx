@@ -1,5 +1,5 @@
 // frontend/src/components/StoryGenerator.tsx
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import api from '../services/api';
 
 interface StoryGeneratorProps {
@@ -13,6 +13,7 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ onStoryGenerated
   const [stories, setStories] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const abortContollerRef = useRef<AbortController | null>(null);
   const handleGenerate = async () => {
     // Don't generate if no prompt
     if (!prompt.trim()) {
@@ -24,11 +25,19 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ onStoryGenerated
     setError(null);
     setIsLoading(true);
 
+    abortControllerRef.current = new AbortController();
+    const timeoutld = setTimeout(() => {
+      abortControllerRef.current?.abort();
+      }, 15000);                                             //timeout after 15 seconds
+
     try {
       const response = await api.post('/ai/generate', {
         prompt: prompt.trim(),
         variations: variationCount,
+      }, {
+        signal: abortControlerRef.current.signal,
       });
+      clearTimeout(timeoutld);
 
       // ✅ Check if response has data
       if (response?.data?.variations) {
@@ -54,6 +63,8 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ onStoryGenerated
         errorMessage = 'Server error. Please try again later.';
       } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         errorMessage = 'Request timed out. Please try again.';
+      } else if (error.name === 'AbortError' || error.code === 'ERR_CANCELED'){
+        errorMessage = 'Request timed out. Please try again later.';
       } else if (!error.response) {
         errorMessage = 'Network error. Please check your connection.';
       }
@@ -82,6 +93,15 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ onStoryGenerated
           >
             <i className="fas fa-times" />
           </button>
+
+          {isLoading && (
+          <button
+            onClick = {() => abortControllerRef.current?.abort()}
+            className = "w-full px-6 py-3 mt-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+          >
+            Cancel
+          </button> 
+        )}
         </div>
       )}
 
