@@ -1,4 +1,5 @@
-import rateLimit from "express-rate-limit";
+import type { Request, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 
 /**
  * Dedicated rate limiter for the /api/v1/search endpoint.
@@ -10,12 +11,8 @@ export const searchRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many search requests. Please wait a moment and try again.",
-  keyGenerator: (req: Request) => {
-    // Prefer real IP behind proxy (trust proxy is set in app.ts)
-    return (
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-      req.ip ||
-      "unknown"
-    );
+  keyGenerator: (req: Request, _res: Response) => {
+    const forwarded = (req.headers["x-forwarded-for"] as string) ?? "";
+    return forwarded.split(",")[0]?.trim() || req.ip || "unknown";
   },
 });
