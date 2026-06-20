@@ -30,4 +30,4 @@ const StoryCacheSchema: Schema = new Schema(
   }
 );
 
-export default mongoose.model<IStoryCache>("StoryCache", StoryCacheSchema);
+export const StoryCache = mongoose.model<IStoryCache>("StoryCache", StoryCacheSchema);

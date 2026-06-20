@@ -5,7 +5,7 @@ import { buildStoryPrompt, PromptOptions } from "../utils/promptBuilder";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
-import StoryCache from "../models/storyCache.model"; // Added Cache Model Import
+import { StoryCache } from "../models/storyCache.model"; // Added Cache Model Import
 
 let openai: OpenAI | null = null;
 let genAI: GoogleGenerativeAI | null = null;
