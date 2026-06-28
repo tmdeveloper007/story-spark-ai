@@ -5,6 +5,7 @@ import { buildStoryPrompt, PromptOptions } from "../utils/promptBuilder";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
+import { StoryCache } from "../models/storyCache.model"; // Added Cache Model Import
 
 let openai: OpenAI | null = null;
 let genAI: GoogleGenerativeAI | null = null;
@@ -46,52 +47,6 @@ export function getAnthropicClient(): Anthropic {
 export const GEMINI_MODEL = "gemini-2.5-flash";
 export const CLAUDE_MODEL = "claude-3-5-sonnet-20241022";
 export const OPENAI_MODEL = "gpt-4o-mini"; 
-
-// ─── Circuit Breaker ─────────────────────────────────────────────────────────
-
-interface CircuitBreakerState {
-  failures: number;
-  lastFailureTime: number;
-}
-
-const CIRCUIT_BREAKER_CONFIG = {
-  maxFailures: 3,
-  cooldownMs: 60 * 1000, // 1 minute
-};
-
-const circuitBreakers: Record<string, CircuitBreakerState> = {
-  openai: { failures: 0, lastFailureTime: 0 },
-  anthropic: { failures: 0, lastFailureTime: 0 },
-  gemini: { failures: 0, lastFailureTime: 0 },
-};
-
-class CircuitBreakerError extends Error {
-  constructor(provider: string, remainingSeconds: number) {
-    super(`Circuit breaker open for ${provider}. Please try again in ${remainingSeconds}s.`);
-    this.name = "CircuitBreakerError";
-  }
-}
-
-function checkCircuitBreaker(provider: "openai" | "anthropic" | "gemini"): void {
-  const state = circuitBreakers[provider];
-  if (state.failures >= CIRCUIT_BREAKER_CONFIG.maxFailures) {
-    const timeSinceLastFailure = Date.now() - state.lastFailureTime;
-    if (timeSinceLastFailure < CIRCUIT_BREAKER_CONFIG.cooldownMs) {
-      const remainingSeconds = Math.ceil((CIRCUIT_BREAKER_CONFIG.cooldownMs - timeSinceLastFailure) / 1000);
-      throw new CircuitBreakerError(provider, remainingSeconds);
-    }
-  }
-}
-
-function recordSuccess(provider: "openai" | "anthropic" | "gemini"): void {
-  circuitBreakers[provider].failures = 0;
-  circuitBreakers[provider].lastFailureTime = 0;
-}
-
-function recordFailure(provider: "openai" | "anthropic" | "gemini"): void {
-  circuitBreakers[provider].failures++;
-  circuitBreakers[provider].lastFailureTime = Date.now();
-}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -138,7 +93,7 @@ async function generateWithAnthropic(systemPrompt: string, userPrompt: string): 
   );
 
   const textBlock = response.content.find((block) => block.type === "text");
-  const text = textBlock?.type === "text" ? textBlock.text : "";
+  const text = textBlock && "text" in textBlock ? textBlock.text : "";
   if (!text) throw new Error("Anthropic returned an empty response");
   return text;
 }
@@ -201,30 +156,43 @@ export async function generateStory(
   // ── Prompt builder: morph into structured AI instructions ───────
   const { systemPrompt, userPrompt } = buildStoryPrompt(securePrompt, options);
 
+  // ── Cache Lookup Step ───────────────────────────────────────────────
+  // Combine prompt and key options to build a unique cache signature
+  const cacheKey = `${securePrompt.trim()}_${options?.genre || "default"}_${options?.length || "medium"}`;
+  
+  try {
+    const existingCache = await StoryCache.findOne({ promptKey: cacheKey });
+    if (existingCache) {
+      console.log("[CACHE HIT] Serving story instantly from MongoDB cache");
+      return {
+        story: existingCache.storyData,
+        provider: existingCache.provider as "openai" | "gemini" | "anthropic",
+        fallbackUsed: false
+      };
+    }
+  } catch (cacheError) {
+    // If the database cache check fails for any strange reason, log it but don't crash the generation flow
+    console.warn("[CACHE ERROR] Failed to query cache:", cacheError);
+  }
+
   const chosenProvider = provider?.toLowerCase();
   let didFallbackToGemini = false;
+  let finalResult: AIResponse | null = null;
 
   if (chosenProvider === "anthropic" || chosenProvider === "claude") {
     // ── Try Anthropic first ──────────────────────────────────────────────────
     try {
-      checkCircuitBreaker("anthropic");
       let story = await generateWithAnthropic(systemPrompt, userPrompt);
       story = validateOutput(story); // Security layer: validate output
-      recordSuccess("anthropic");
       console.log("[AI] Story generated successfully via Anthropic");
-      return { story, provider: "anthropic", fallbackUsed: false };
+      finalResult = { story, provider: "anthropic", fallbackUsed: false };
     } catch (anthropicError) {
       console.warn(
         "[AI] Anthropic failed:",
         anthropicError instanceof Error ? anthropicError.message : anthropicError
       );
 
-      const isCircuitOpen = anthropicError instanceof CircuitBreakerError;
-      if (!isCircuitOpen) {
-        recordFailure("anthropic");
-      }
-
-      if (!isCircuitOpen && !isRetryableError(anthropicError)) {
+      if (!isRetryableError(anthropicError)) {
         throw new Error(
           "Anthropic request failed with a non-retryable error. Please check your API key."
         );
@@ -235,13 +203,10 @@ export async function generateStory(
   } else if (chosenProvider === "openai" || !chosenProvider) {
     // ── Try OpenAI first ──────────────────────────────────────────────────────
     try {
-      checkCircuitBreaker("openai");
       let story = await generateWithOpenAI(systemPrompt, userPrompt);
       story = validateOutput(story); // Security layer: validate output
-      recordSuccess("openai");
       console.log("[AI] Story generated successfully via OpenAI");
-
-      return { story, provider: "openai", fallbackUsed: false };
+      finalResult = { story, provider: "openai", fallbackUsed: false };
 
     } catch (openAIError) {
       console.warn(
@@ -249,13 +214,8 @@ export async function generateStory(
         openAIError instanceof Error ? openAIError.message : openAIError
       );
 
-      const isCircuitOpen = openAIError instanceof CircuitBreakerError;
-      if (!isCircuitOpen) {
-        recordFailure("openai");
-      }
-
       // Only fall back if the error type warrants it
-      if (!isCircuitOpen && !isRetryableError(openAIError)) {
+      if (!isRetryableError(openAIError)) {
         throw new Error(
           "OpenAI request failed with a non-retryable error. Please check your API key."
         );
@@ -272,33 +232,37 @@ export async function generateStory(
   }
 
   // ── Try Gemini as fallback / direct ───────────────────────────────────────
-  try {
-    checkCircuitBreaker("gemini");
-    let story = await generateWithGemini(systemPrompt, userPrompt);
-    story = validateOutput(story); // Security layer: validate output
-    recordSuccess("gemini");
-    console.log(`[AI] Story generated successfully via Gemini (${didFallbackToGemini ? "fallback" : "direct"})`);
+  if (!finalResult) {
+    try {
+      let story = await generateWithGemini(systemPrompt, userPrompt);
+      story = validateOutput(story); // Security layer: validate output
+      console.log(`[AI] Story generated successfully via Gemini (${didFallbackToGemini ? "fallback" : "direct"})`);
+      finalResult = { story, provider: "gemini", fallbackUsed: didFallbackToGemini };
 
-    return { story, provider: "gemini", fallbackUsed: didFallbackToGemini };
+    } catch (geminiError) {
+      console.error(
+        "[AI] Gemini also failed.",
+        geminiError instanceof Error ? geminiError.message : geminiError
+      );
 
-  } catch (geminiError) {
-    console.error(
-      "[AI] Gemini also failed.",
-      geminiError instanceof Error ? geminiError.message : geminiError
-    );
-
-    const isCircuitOpen = geminiError instanceof CircuitBreakerError;
-    if (!isCircuitOpen) {
-      recordFailure("gemini");
+      // All failed — throw a clean user-facing error
+      throw new Error(
+        "Story generation failed. All AI providers are currently unavailable. Please try again later."
+      );
     }
-
-    if (isCircuitOpen) {
-      throw new Error(`Story generation failed. ${geminiError instanceof Error ? geminiError.message : ""}`);
-    }
-
-    // All failed — throw a clean user-facing error
-    throw new Error(
-      "Story generation failed. All AI providers are currently unavailable. Please try again later."
-    );
   }
+
+  // ── Populate Cache Before Returning ────────────────────────────────
+  try {
+    await StoryCache.create({
+      promptKey: cacheKey,
+      provider: finalResult.provider,
+      storyData: finalResult.story
+    });
+    console.log("[CACHE STORED] New AI story cached to MongoDB successfully");
+  } catch (saveCacheError) {
+    console.warn("[CACHE ERROR] Failed to save story generation to cache:", saveCacheError);
+  }
+
+  return finalResult;
 }

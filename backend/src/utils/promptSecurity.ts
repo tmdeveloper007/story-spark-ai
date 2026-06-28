@@ -62,20 +62,16 @@ export const validateAndFormatPrompt = (userPrompt: string): string => {
     throw new Error("Security Violation: Invalid prompt input.");
   }
 
-  // Normalize input before security analysis
   const normalizedPrompt = normalizeInput(userPrompt);
 
-  // Semantic filtering against expanded pattern set
   for (const pattern of FORBIDDEN_PATTERNS) {
     if (pattern.test(normalizedPrompt)) {
       throw new Error("Security Violation: Malicious prompt injection detected.");
     }
   }
 
-  // Content moderation — block harmful/inappropriate input
   assertContentSafe(normalizedPrompt);
 
-  // Strict delimiters to isolate user input
   return `"""\n${normalizedPrompt}\n"""`;
 };
 
@@ -86,7 +82,6 @@ export const validateOutput = (aiResponse: string): string => {
 
   const lowerResponse = normalizeInput(aiResponse).toLowerCase();
 
-  // Expanded output validation — check for leaked system instructions
   const leakPatterns = [
     "system prompt:",
     "instructions:",
@@ -109,8 +104,6 @@ export const validateOutput = (aiResponse: string): string => {
     }
   }
 
-  // Content moderation — block harmful/inappropriate output
   assertContentSafe(aiResponse);
 
   return aiResponse;
-};
