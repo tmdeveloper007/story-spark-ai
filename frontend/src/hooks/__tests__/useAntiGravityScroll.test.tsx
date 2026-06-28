@@ -48,7 +48,7 @@ describe("useAntiGravityScroll", () => {
         }
       }),
       dispatchEvent: (event: string | Event) => {
-        const handlers = listeners[event] || [];
+        const handlers = listeners[String(event)] || [];
         handlers.forEach((h) => h({} as Event));
       },
     } as unknown as HTMLDivElement;
@@ -106,7 +106,7 @@ describe("useAntiGravityScroll", () => {
 
     // Simulate wheel event
     act(() => {
-      container.dispatchEvent("wheel");
+      (container as any).dispatchEvent("wheel");
     });
 
     // After wheel, isPlaying should be false
